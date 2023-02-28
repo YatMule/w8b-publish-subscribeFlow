@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8366308b-5254-472d-a680-4f6bd8400919" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	
+	<flow name="w8b-publish-subscribeFlow" doc:id="fb471fb5-8ca8-429c-ba5a-1db37b7a9c9d" >
+		<http:listener doc:name="Listener/Post" doc:id="58283455-51c7-4b08-9eaa-16e4d836ccb7" path="send-data" config-ref="HTTP_Listener_config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1aac2267-f5fd-40d7-b026-21c8ef639438" message="Before Publish"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="6bbde9f2-ed0b-43c6-ab02-02dcf051bd67" >
+			<route >
+				<vm:publish doc:name="Queue One" doc:id="6111651e-aa6c-4d6f-a4d4-f32ff9ff6658" config-ref="VM_Config" queueName="queue1" timeoutUnit="MINUTES"/>
+			</route>
+			<route >
+				<vm:publish doc:name="Queue Two" doc:id="f57bccaa-4115-42d2-b040-ace2ccf52a68" config-ref="VM_Config" queueName="queue2"/>
+			</route>
+			<route >
+				<vm:publish doc:name="Queue Three" doc:id="e17d5191-5f3b-49a1-bc36-bd4aaf937908" config-ref="VM_Config" queueName="queue3"/>
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="Logger" doc:id="1d008982-5ae7-4924-8942-abd0e1ecea7b" />
+		<set-payload value='#[%dw 2.0 &#10;output json&#10;---&#10;{&#10;	"message": "data sent Queue!",&#10;	"code": 200,&#10;}]' doc:name="response" doc:id="b417ba0d-cf31-45a0-8a08-5d5c825da295" />
+	</flow>
+	<flow name="w8b-publish-subscribeFlow1" doc:id="f12bd862-6697-4770-bd09-b8a9353c34f7" >
+		<vm:listener doc:name="Listener" doc:id="9d450af2-f3d5-452f-85f3-1b3c102cdd8f" config-ref="VM_Config" queueName="queue1"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d2f92fec-9e80-43d0-b37c-3888f846cc75" />
+		<ee:transform doc:name="to CSV" doc:id="ab44efab-a21d-4159-8c35-ebe14ba9f3a6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="CSV" doc:id="c0d2c2b5-1660-4453-9ba9-5aee77a5fc5e" path="C:\Users\Natey\Documents\training\w8b-publish-subscribe\sent_data.csv" mode="APPEND"/>
+	</flow>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="eb89a2ed-860d-4252-b1ca-d23e7c510630">
+		<vm:queues>
+			<vm:queue queueName="queue1" />
+			<vm:queue queueName="queue2" />
+			<vm:queue queueName="queue3" />
+		</vm:queues>
+	</vm:config>
+	<flow name="w8b-publish-subscribeFlow2" doc:id="b5ac3d02-a56c-451e-89b6-f56be0e4b195" >
+		<vm:listener doc:name="Listener" doc:id="2eeaf9f1-1de2-4100-8743-3debb8f9b9c9" config-ref="VM_Config" queueName="queue2"/>
+		<logger level="INFO" doc:name="Logger" doc:id="45c47506-3522-4ea0-b4c2-65153a19e70f" />
+		<ee:transform doc:name="to JSON" doc:id="76dd0f35-bc35-4daf-9289-696305993812" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="JSON" doc:id="6708229f-e58c-444b-9a62-44961b69cc3f" path="C:\Users\Natey\Documents\training\w8b-publish-subscribe\sent_data.json" mode="APPEND"/>
+	</flow>
+	<flow name="w8b-publish-subscribeFlow3" doc:id="eb479558-5f54-4435-85b9-b1045834ff93" >
+		<vm:listener doc:name="Listener" doc:id="638df9ab-4075-409b-aa15-bbd4e32854a0" config-ref="VM_Config" queueName="queue3"/>
+		<logger level="INFO" doc:name="Logger" doc:id="258a0393-be9c-4829-a058-0e2dc7dfcfad" />
+		<ee:transform doc:name="to XML" doc:id="ba99d9cb-4451-4a15-a241-8d858e14404d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	"data":{
+		'row':payload
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="XML" doc:id="f42da4db-0464-4cb9-b261-fcdbcebd7042" path="C:\Users\Natey\Documents\training\w8b-publish-subscribe\sent_data.xml" mode="APPEND"/>
+	</flow>
+</mule>
